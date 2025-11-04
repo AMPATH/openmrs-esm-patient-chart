@@ -118,7 +118,28 @@ jobs:
           cd packages/${{ matrix.package.name }}
           yarn build
 
-      - name: 🚀 Publish to npm with next tag
+      - name: � Pack and prepare for publish
+        run: |
+          cd packages/${{ matrix.package.name }}
+          # Create a temporary package.json without workspace: dependencies
+          node -e "
+          const fs = require('fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          
+          // Replace workspace: dependencies with actual versions
+          if (pkg.devDependencies) {
+            Object.keys(pkg.devDependencies).forEach(dep => {
+              if (pkg.devDependencies[dep].startsWith('workspace:')) {
+                // Remove workspace dependencies from devDependencies for publishing
+                delete pkg.devDependencies[dep];
+              }
+            });
+          }
+          
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+          "
+
+      - name: �🚀 Publish to npm with next tag
         run: |
           cd packages/${{ matrix.package.name }}
           npm publish --tag next --legacy-peer-deps
@@ -168,7 +189,28 @@ jobs:
           cd packages/${{ matrix.package.name }}
           yarn build
 
-      - name: 🚀 Publish to npm with latest tag
+      - name: � Pack and prepare for publish
+        run: |
+          cd packages/${{ matrix.package.name }}
+          # Create a temporary package.json without workspace: dependencies
+          node -e "
+          const fs = require('fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          
+          // Replace workspace: dependencies with actual versions
+          if (pkg.devDependencies) {
+            Object.keys(pkg.devDependencies).forEach(dep => {
+              if (pkg.devDependencies[dep].startsWith('workspace:')) {
+                // Remove workspace dependencies from devDependencies for publishing
+                delete pkg.devDependencies[dep];
+              }
+            });
+          }
+          
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+          "
+
+      - name: �🚀 Publish to npm with latest tag
         run: |
           cd packages/${{ matrix.package.name }}
           npm publish --tag latest --legacy-peer-deps
