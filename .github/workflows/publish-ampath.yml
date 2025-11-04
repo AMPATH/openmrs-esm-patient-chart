@@ -104,23 +104,34 @@ jobs:
       - name: 📦 Clean workspace dependencies
         run: |
           cd packages/${{ matrix.package.name }}
+          echo "Original package.json devDependencies:"
+          node -e "console.log(JSON.stringify(require('./package.json').devDependencies, null, 2))"
+          
           # Create a temporary package.json without workspace: dependencies
           node -e "
           const fs = require('fs');
           const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
           
+          console.log('Before cleaning - devDependencies:', pkg.devDependencies);
+          
           // Replace workspace: dependencies with actual versions
           if (pkg.devDependencies) {
             Object.keys(pkg.devDependencies).forEach(dep => {
               if (pkg.devDependencies[dep].startsWith('workspace:')) {
-                // Remove workspace dependencies from devDependencies for publishing
+                console.log('Removing workspace dependency:', dep, pkg.devDependencies[dep]);
                 delete pkg.devDependencies[dep];
               }
             });
           }
           
+          console.log('After cleaning - devDependencies:', pkg.devDependencies);
+          
           fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+          console.log('Package.json updated successfully');
           "
+          
+          echo "Updated package.json devDependencies:"
+          node -e "console.log(JSON.stringify(require('./package.json').devDependencies, null, 2))"
 
       - name: 🏷️ Version with next tag
         run: |
@@ -176,23 +187,34 @@ jobs:
       - name: 📦 Clean workspace dependencies
         run: |
           cd packages/${{ matrix.package.name }}
+          echo "Original package.json devDependencies:"
+          node -e "console.log(JSON.stringify(require('./package.json').devDependencies, null, 2))"
+          
           # Create a temporary package.json without workspace: dependencies
           node -e "
           const fs = require('fs');
           const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
           
+          console.log('Before cleaning - devDependencies:', pkg.devDependencies);
+          
           // Replace workspace: dependencies with actual versions
           if (pkg.devDependencies) {
             Object.keys(pkg.devDependencies).forEach(dep => {
               if (pkg.devDependencies[dep].startsWith('workspace:')) {
-                // Remove workspace dependencies from devDependencies for publishing
+                console.log('Removing workspace dependency:', dep, pkg.devDependencies[dep]);
                 delete pkg.devDependencies[dep];
               }
             });
           }
           
+          console.log('After cleaning - devDependencies:', pkg.devDependencies);
+          
           fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+          console.log('Package.json updated successfully');
           "
+          
+          echo "Updated package.json devDependencies:"
+          node -e "console.log(JSON.stringify(require('./package.json').devDependencies, null, 2))"
 
       - name: 🏷️ Set release version
         run: |
