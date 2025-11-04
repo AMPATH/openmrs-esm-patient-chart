@@ -1,5 +1,5 @@
 {
-  "name": "@openmrs/esm-patient-forms-app",
+  "name": "@ampath/esm-patient-forms-app",
   "version": "11.3.0",
   "license": "MPL-2.0",
   "description": "Patient forms microfrontend for the OpenMRS SPA",

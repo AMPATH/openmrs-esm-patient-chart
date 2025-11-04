@@ -1,0 +1,176 @@
+name: AMPATH Patient Forms & Chart Publishing
+
+on:
+  push:
+    branches: [main]
+  release:
+    types:
+      - created
+
+env:
+  TURBO_API: 'http://127.0.0.1:9080'
+  TURBO_TOKEN: 'turbo-token'
+  TURBO_TEAM: ${{ github.repository_owner }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: 📦 Install dependencies
+        run: yarn install
+
+      - name: 🚀 Setup local cache server for Turborepo
+        uses: felixmosh/turborepo-gh-artifacts@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          server-token: ${{ env.TURBO_TOKEN }}
+
+      - name: 🧪 Run tests
+        run: yarn verify
+
+      - name: 🔧 Run type checks for patient forms app
+        run: yarn workspace @ampath/esm-patient-forms-app typescript
+
+      - name: 🔧 Run type checks for patient chart app
+        run: yarn workspace @ampath/esm-patient-chart-app typescript
+
+      - name: 🏗️ Build patient forms app
+        run: |
+          cd packages/esm-patient-forms-app
+          yarn build
+
+      - name: 🏗️ Build patient chart app
+        run: |
+          cd packages/esm-patient-chart-app
+          yarn build
+
+      - name: 📤 Upload patient forms build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: patient-forms-dist
+          path: packages/esm-patient-forms-app/dist
+          overwrite: true
+
+      - name: 📤 Upload patient chart build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: patient-chart-dist
+          path: packages/esm-patient-chart-app/dist
+          overwrite: true
+
+  publish-next:
+    runs-on: ubuntu-latest
+    needs: build
+    if: >
+      github.event_name == 'push' && 
+      github.ref == 'refs/heads/main' &&
+      github.repository_owner == 'AMPATH'
+    strategy:
+      matrix:
+        package:
+          - name: esm-patient-forms-app
+            workspace: "@ampath/esm-patient-forms-app"
+          - name: esm-patient-chart-app
+            workspace: "@ampath/esm-patient-chart-app"
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: 📦 Install dependencies
+        run: yarn install
+
+      - name: 🔧 Configure Git
+        run: |
+          git config user.email "devs@ampath.or.ke" 
+          git config user.name "AMPATH CI"
+
+      - name: 🏷️ Version with next tag
+        run: |
+          cd packages/${{ matrix.package.name }}
+          CURRENT_VERSION=$(node -e "console.log(require('./package.json').version)")
+          NEXT_VERSION="${CURRENT_VERSION}-next.${GITHUB_RUN_NUMBER}"
+          npm version $NEXT_VERSION --no-git-tag-version --legacy-peer-deps
+          rm -f package-lock.json node_modules -rf
+          echo "Publishing version: $NEXT_VERSION"
+
+      - name: 🔄 Restore yarn workspace
+        run: yarn install --no-immutable
+
+      - name: 🏗️ Build
+        run: |
+          cd packages/${{ matrix.package.name }}
+          yarn build
+
+      - name: 🚀 Publish to npm with next tag
+        run: |
+          cd packages/${{ matrix.package.name }}
+          npm publish --tag next --legacy-peer-deps
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+
+  publish-release:
+    runs-on: ubuntu-latest
+    needs: build
+    if: >
+      github.event_name == 'release' &&
+      github.repository_owner == 'AMPATH'
+    strategy:
+      matrix:
+        package:
+          - name: esm-patient-forms-app
+            workspace: "@ampath/esm-patient-forms-app"
+          - name: esm-patient-chart-app
+            workspace: "@ampath/esm-patient-chart-app"
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: 📦 Install dependencies
+        run: yarn install
+
+      - name: 🏷️ Set release version
+        run: |
+          cd packages/${{ matrix.package.name }}
+          RELEASE_VERSION=${GITHUB_REF_NAME#v}  # Remove 'v' prefix if present
+          npm version $RELEASE_VERSION --no-git-tag-version --legacy-peer-deps
+          rm -f package-lock.json node_modules -rf
+          echo "Publishing release version: $RELEASE_VERSION"
+
+      - name: 🔄 Restore yarn workspace
+        run: yarn install --no-immutable
+
+      - name: 🏗️ Build
+        run: |
+          cd packages/${{ matrix.package.name }}
+          yarn build
+
+      - name: 🚀 Publish to npm with latest tag
+        run: |
+          cd packages/${{ matrix.package.name }}
+          npm publish --tag latest --legacy-peer-deps
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
