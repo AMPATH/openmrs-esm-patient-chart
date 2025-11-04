@@ -101,24 +101,7 @@ jobs:
           git config user.email "devs@ampath.or.ke" 
           git config user.name "AMPATH CI"
 
-      - name: 🏷️ Version with next tag
-        run: |
-          cd packages/${{ matrix.package.name }}
-          CURRENT_VERSION=$(node -e "console.log(require('./package.json').version)")
-          NEXT_VERSION="${CURRENT_VERSION}-next.${GITHUB_RUN_NUMBER}"
-          npm version $NEXT_VERSION --no-git-tag-version --legacy-peer-deps
-          rm -f package-lock.json node_modules -rf
-          echo "Publishing version: $NEXT_VERSION"
-
-      - name: 🔄 Restore yarn workspace
-        run: yarn install --no-immutable
-
-      - name: 🏗️ Build
-        run: |
-          cd packages/${{ matrix.package.name }}
-          yarn build
-
-      - name: � Pack and prepare for publish
+      - name: 📦 Clean workspace dependencies
         run: |
           cd packages/${{ matrix.package.name }}
           # Create a temporary package.json without workspace: dependencies
@@ -139,7 +122,24 @@ jobs:
           fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
           "
 
-      - name: �🚀 Publish to npm with next tag
+      - name: 🏷️ Version with next tag
+        run: |
+          cd packages/${{ matrix.package.name }}
+          CURRENT_VERSION=$(node -e "console.log(require('./package.json').version)")
+          NEXT_VERSION="${CURRENT_VERSION}-next.${GITHUB_RUN_NUMBER}"
+          npm version $NEXT_VERSION --no-git-tag-version --legacy-peer-deps
+          rm -f package-lock.json node_modules -rf
+          echo "Publishing version: $NEXT_VERSION"
+
+      - name: 🔄 Restore yarn workspace
+        run: yarn install --no-immutable
+
+      - name: 🏗️ Build
+        run: |
+          cd packages/${{ matrix.package.name }}
+          yarn build
+
+      - name: 🚀 Publish to npm with next tag
         run: |
           cd packages/${{ matrix.package.name }}
           npm publish --tag next --legacy-peer-deps
@@ -173,23 +173,7 @@ jobs:
       - name: 📦 Install dependencies
         run: yarn install
 
-      - name: 🏷️ Set release version
-        run: |
-          cd packages/${{ matrix.package.name }}
-          RELEASE_VERSION=${GITHUB_REF_NAME#v}  # Remove 'v' prefix if present
-          npm version $RELEASE_VERSION --no-git-tag-version --legacy-peer-deps
-          rm -f package-lock.json node_modules -rf
-          echo "Publishing release version: $RELEASE_VERSION"
-
-      - name: 🔄 Restore yarn workspace
-        run: yarn install --no-immutable
-
-      - name: 🏗️ Build
-        run: |
-          cd packages/${{ matrix.package.name }}
-          yarn build
-
-      - name: � Pack and prepare for publish
+      - name: 📦 Clean workspace dependencies
         run: |
           cd packages/${{ matrix.package.name }}
           # Create a temporary package.json without workspace: dependencies
@@ -210,7 +194,23 @@ jobs:
           fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
           "
 
-      - name: �🚀 Publish to npm with latest tag
+      - name: 🏷️ Set release version
+        run: |
+          cd packages/${{ matrix.package.name }}
+          RELEASE_VERSION=${GITHUB_REF_NAME#v}  # Remove 'v' prefix if present
+          npm version $RELEASE_VERSION --no-git-tag-version --legacy-peer-deps
+          rm -f package-lock.json node_modules -rf
+          echo "Publishing release version: $RELEASE_VERSION"
+
+      - name: 🔄 Restore yarn workspace
+        run: yarn install --no-immutable
+
+      - name: 🏗️ Build
+        run: |
+          cd packages/${{ matrix.package.name }}
+          yarn build
+
+      - name: 🚀 Publish to npm with latest tag
         run: |
           cd packages/${{ matrix.package.name }}
           npm publish --tag latest --legacy-peer-deps
