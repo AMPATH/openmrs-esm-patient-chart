@@ -1,3 +1,4 @@
+import { openmrsFetch } from '@openmrs/esm-framework';
 import {
   type RequestCustomOtpResponse,
   type RequestCustomOtpDto,
@@ -9,7 +10,7 @@ const baseUrl = 'https://ngx.ampath.or.ke/hie';
 
 export async function requestCustomOtp(requestCustomOtpDto: RequestCustomOtpDto): Promise<RequestCustomOtpResponse> {
   const customOtpUrl = `${baseUrl}/client/send-custom-otp`;
-  const resp = await fetch(customOtpUrl, {
+  const resp = await openmrsFetch(customOtpUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -24,7 +25,7 @@ export async function validateCustomOtp(
   validateHieCustomOtpDto: ValidateHieCustomOtpDto,
 ): Promise<ValidateHieCustomOtpResponse> {
   const validateOtpUrl = `${baseUrl}/client/validate-custom-otp`;
-  const resp = await fetch(validateOtpUrl, {
+  const resp = await openmrsFetch(validateOtpUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
