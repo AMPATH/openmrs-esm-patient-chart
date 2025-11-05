@@ -5,7 +5,7 @@ const baseUrl = 'https://ngx.ampath.or.ke/hie';
 
 export const getPatientShrSummary = async (crNo: string, locationUuid: string): Promise<FhirBundle> => {
   const shrSummaryUrl = `${baseUrl}/v1/shr/summary?cr_id=${crNo}&locationUuid=${locationUuid}`;
-  const resp = await fetch(shrSummaryUrl);
+  const resp = await openmrsFetch(shrSummaryUrl);
   const data = await resp.json();
   return data;
 };
