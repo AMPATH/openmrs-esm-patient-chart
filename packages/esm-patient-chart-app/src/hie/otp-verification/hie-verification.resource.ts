@@ -6,7 +6,7 @@ import {
   type ValidateHieCustomOtpResponse,
 } from '../types';
 
-const baseUrl = 'https://ngx.ampath.or.ke/hie';
+const baseUrl = 'https://staging.ampath.or.ke/hie';
 
 export async function requestCustomOtp(requestCustomOtpDto: RequestCustomOtpDto): Promise<RequestCustomOtpResponse> {
   const customOtpUrl = `${baseUrl}/client/send-custom-otp`;
