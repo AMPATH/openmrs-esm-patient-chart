@@ -6,6 +6,7 @@ import type { ChartConfig } from '../../config-schema';
 import VisitHistoryTable from '../visit-history-table/visit-history-table.component';
 import AllEncountersTable from './past-visits-components/encounters-table/all-encounters-table.component';
 import styles from './visit-detail-overview.scss';
+import ShrDetails from './shr-details/shr-details.component';
 
 interface VisitOverviewComponentProps {
   patientUuid: string;
@@ -30,6 +31,9 @@ function VisitDetailOverviewComponent({ patientUuid }: VisitOverviewComponentPro
           ) : (
             <></>
           )}
+          <Tab className={styles.tab} id="shr-tab">
+            Shared Health Records
+          </Tab>
         </TabList>
         <TabPanels>
           <TabPanel>
@@ -40,6 +44,9 @@ function VisitDetailOverviewComponent({ patientUuid }: VisitOverviewComponentPro
               <AllEncountersTable patientUuid={patientUuid} />
             </TabPanel>
           )}
+          <TabPanel>
+            <ShrDetails patientUuid={patientUuid} />
+          </TabPanel>
         </TabPanels>
       </Tabs>
     </div>
