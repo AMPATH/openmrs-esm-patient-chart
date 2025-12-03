@@ -86,7 +86,8 @@ function useCreateMedicationOrderFormSchema() {
               .object({
                 uuid: z.string(),
               })
-              .passthrough(),
+              .passthrough()
+              .nullable(),
             strength: z.string().nullable(),
             display: z.string().nullable(),
           },
@@ -190,7 +191,7 @@ function useCreateMedicationOrderFormSchema() {
       ...baseSchemaFields,
       ...outpatientDrugOrderFields,
       isFreeTextDosage: z.literal(false),
-      freeTextDosage: z.string().optional(),
+      freeTextDosage: z.string().nullable(),
     });
 
     const freeTextDosageSchema = z.object({

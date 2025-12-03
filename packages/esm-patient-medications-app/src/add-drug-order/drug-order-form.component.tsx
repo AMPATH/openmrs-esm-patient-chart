@@ -1,5 +1,4 @@
 import React, { type ChangeEvent, type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 import {
   Button,
@@ -7,21 +6,23 @@ import {
   Checkbox,
   Column,
   ComboBox,
-  IconButton,
   Form,
   FormGroup,
   FormLabel,
   Grid,
+  IconButton,
   InlineNotification,
   Layer,
   NumberInput,
+  Stack,
   TextArea,
   TextInput,
   Toggle,
-  Stack,
 } from '@carbon/react';
 import { Subtract } from '@carbon/react/icons';
 import { capitalize } from 'lodash-es';
+import { useTranslation } from 'react-i18next';
+import { type Control, Controller, type FieldErrors, useController } from 'react-hook-form';
 import {
   AddIcon,
   age,
@@ -30,12 +31,12 @@ import {
   getPatientName,
   OpenmrsDatePicker,
   parseDate,
+  showSnackbar,
   useConfig,
   useFeatureFlag,
   useLayoutType,
   useSession,
 } from '@openmrs/esm-framework';
-import { type Control, Controller, useController } from 'react-hook-form';
 import { type Drug } from '@openmrs/esm-patient-common-lib';
 import { useOrderConfig } from '../api/order-config';
 import { type ConfigObject } from '../config-schema';
@@ -48,16 +49,17 @@ import type {
   MedicationRoute,
   QuantityUnit,
 } from '../types';
-import { type Provider, useProviders } from '../api';
-import styles from './drug-order-form.scss';
+import { type Provider, useActivePatientOrders, useProviders } from '../api';
 import {
   drugOrderBasketItemToFormValue,
   type MedicationOrderFormData,
   useDrugOrderForm,
 } from './drug-order-form.resource';
 import DrugSearchComboBox from './drug-search/drug-search-combobox.component';
+import styles from './drug-order-form.scss';
 
 export interface DrugOrderFormProps {
+  patientUuid: string;
   initialOrderBasketItem: DrugOrderBasketItem;
   patient: fhir.Patient;
   onSave: (finalizedOrder: DrugOrderBasketItem) => Promise<void>;
@@ -165,6 +167,22 @@ export function DrugOrderForm({
     promptBeforeClosing(() => isDirty);
   }, [isDirty, promptBeforeClosing]);
 
+  // reset the dosage information if set to free text dosage
+  const handleIsFreeTextDosageAfterChange = useCallback(
+    (newValue: MedicationOrderFormData['isFreeTextDosage']) => {
+      if (newValue) {
+        setValue('dosage', null, { shouldValidate: true });
+        setValue('unit', null, { shouldValidate: true });
+        setValue('route', null, { shouldValidate: true });
+        setValue('frequency', null, { shouldValidate: true });
+        setValue('patientInstructions', null, { shouldValidate: true });
+      } else {
+        setValue('freeTextDosage', null, { shouldValidate: true });
+      }
+    },
+    [setValue],
+  );
+
   const handleUnitAfterChange = useCallback(
     (newValue: MedicationOrderFormData['unit'], prevValue: MedicationOrderFormData['unit']) => {
       if (prevValue?.valueCoded === getValues('quantityUnits')?.valueCoded) {
@@ -206,6 +224,19 @@ export function DrugOrderForm({
     setIsSaving(true);
     await onSave(newBasketItems);
     setIsSaving(false);
+  };
+
+  const handleFormSubmissionError = (errors: FieldErrors<MedicationOrderFormData>) => {
+    if (errors) {
+      console.error('Error in drug order form', errors);
+      showSnackbar({
+        title: t('drugOrderValidationFailed', 'Validation failed'),
+        subtitle: t('drugOrderValidationFailedDescription', 'Please check the form for errors and try again.'),
+        kind: 'error',
+        timeoutInMs: 5000,
+        isLowContrast: true,
+      });
+    }
   };
 
   const drugDosingUnits: Array<DosingUnit> = useMemo(
@@ -287,7 +318,17 @@ export function DrugOrderForm({
     },
     [setShowMedicationHeader],
   );
-  const now = new Date();
+  const {
+    fieldState: { error: drugFieldError },
+  } = useController<MedicationOrderFormData>({ name: 'drug', control });
+
+  // TODO: use the backend instead of this to determine whether the drug formulation can be ordered
+  // See: https://openmrs.atlassian.net/browse/RESTWS-1003
+  const { data: activeOrders } = useActivePatientOrders(patient.id);
+  const drugAlreadyPrescribedForNewOrder = useMemo(
+    () => initialOrderBasketItem.action == 'NEW' && activeOrders?.some((order) => order?.drug?.uuid === drug?.uuid),
+    [activeOrders, drug, initialOrderBasketItem.action],
+  );
 
   return (
     <div className={styles.container}>
@@ -304,7 +345,11 @@ export function DrugOrderForm({
         </span>
       </div>
       <ExtensionSlot name="allergy-list-pills-slot" state={{ patientUuid: patient?.id }} />
-      <Form className={styles.orderForm} onSubmit={handleSubmit(handleFormSubmission)} id="drugOrderForm">
+      <Form
+        className={styles.orderForm}
+        onSubmit={handleSubmit(handleFormSubmission, handleFormSubmissionError)}
+        id="drugOrderForm"
+      >
         <div>
           {errorFetchingOrderConfig && (
             <InlineNotification
@@ -329,6 +374,12 @@ export function DrugOrderForm({
                         reset(drugOrderBasketItemToFormValue(item, startDate, currentProvider.uuid));
                       }}
                     />
+                    {drugAlreadyPrescribedForNewOrder && (
+                      <FormLabel className={styles.errorLabel}>
+                        {t('activePrescriptionExists', 'Active prescription exists for this drug')}
+                      </FormLabel>
+                    )}
+                    <FormLabel className={styles.errorLabel}>{drugFieldError?.message}</FormLabel>
                   </InputWrapper>
                 )}
                 {allowAndSupportSelectingPrescribingClinician &&
@@ -386,6 +437,7 @@ export function DrugOrderForm({
                   id="freeTextDosageToggle"
                   aria-label={t('freeTextDosage', 'Free text dosage')}
                   labelText={t('freeTextDosage', 'Free text dosage')}
+                  handleAfterChange={handleIsFreeTextDosageAfterChange}
                 />
               </Column>
             </Grid>
@@ -667,9 +719,7 @@ export function DrugOrderForm({
           </section>
         </div>
 
-        <ButtonSet
-          className={classNames(styles.buttonSet, isTablet ? styles.tabletButtonSet : styles.desktopButtonSet)}
-        >
+        <ButtonSet className={styles.buttonSet}>
           <Button className={styles.button} kind="secondary" onClick={onCancel} size="xl">
             {t('discard', 'Discard')}
           </Button>
@@ -678,7 +728,7 @@ export function DrugOrderForm({
             kind="primary"
             type="submit"
             size="xl"
-            disabled={!!errorFetchingOrderConfig || isSaving}
+            disabled={!!errorFetchingOrderConfig || isSaving || drugAlreadyPrescribedForNewOrder}
           >
             {saveButtonText}
           </Button>
@@ -723,7 +773,9 @@ const CustomNumberInput = ({ setValue, control, name, labelText, isTablet, ...in
 
   return (
     <div className={styles.customElement}>
-      <span className="cds--label">{labelText}</span>
+      <span className="cds--label" id={`${name}-label`}>
+        {labelText}
+      </span>
       <div className={styles.customNumberInput}>
         <IconButton onClick={decrement} label={t('decrement', 'Decrement')} size={responsiveSize}>
           <Subtract size={16} />
@@ -737,6 +789,7 @@ const CustomNumberInput = ({ setValue, control, name, labelText, isTablet, ...in
           size={responsiveSize}
           id={name}
           labelText=""
+          aria-labelledby={`${name}-label`}
           {...inputProps}
         />
         <IconButton onClick={increment} label={t('increment', 'Increment')} size={responsiveSize}>
@@ -775,6 +828,7 @@ const ControlledFieldInput = ({
   handleAfterChange,
   ...restProps
 }: ControlledFieldInputProps) => {
+  const { t } = useTranslation();
   const {
     field: { onBlur, onChange, value, ref },
     fieldState: { error },
@@ -803,6 +857,8 @@ const ControlledFieldInput = ({
           ref={ref}
           // @ts-ignore
           size={isTablet ? 'md' : 'sm'}
+          labelA={t('on', 'On')}
+          labelB={t('off', 'Off')}
           {...restProps}
         />
       );
@@ -887,7 +943,7 @@ const ControlledFieldInput = ({
     }
 
     return null;
-  }, [type, value, restProps, handleChange, fieldErrorStyles, onBlur, ref, isTablet]);
+  }, [type, value, restProps, handleChange, fieldErrorStyles, onBlur, ref, isTablet, t]);
 
   return (
     <>

@@ -9,6 +9,7 @@ import {
   closeWorkspace,
   launchWorkspace,
   useLayoutType,
+  type Visit,
 } from '@openmrs/esm-framework';
 import { useOrderBasket } from '@openmrs/esm-patient-common-lib';
 import { prepMedicationOrderPostData } from '../api/api';
@@ -17,13 +18,26 @@ import OrderBasketItemTile from './order-basket-item-tile.component';
 import RxIcon from './rx-icon.component';
 import styles from './drug-order-basket-panel.scss';
 
+interface OrderBasketSlotProps {
+  patientUuid: string;
+  patient: fhir.Patient;
+  visitContext: Visit;
+  mutateVisitContext: () => void;
+}
+
 /**
  * Designs: https://app.zeplin.io/project/60d59321e8100b0324762e05/screen/62c6bb9500e7671a618efa56
+ * Slotted into order-basket-slot by default
  */
-export default function DrugOrderBasketPanelExtension() {
+const DrugOrderBasketPanelExtension: React.FC<OrderBasketSlotProps> = ({ patient }) => {
   const { t } = useTranslation();
   const isTablet = useLayoutType() === 'tablet';
-  const { orders, setOrders } = useOrderBasket<DrugOrderBasketItem>('medications', prepMedicationOrderPostData);
+  const responsiveSize = isTablet ? 'md' : 'sm';
+  const { orders, setOrders } = useOrderBasket<DrugOrderBasketItem>(
+    patient,
+    'medications',
+    prepMedicationOrderPostData,
+  );
   const [isExpanded, setIsExpanded] = useState(orders.length > 0);
   const {
     incompleteOrderBasketItems,
@@ -94,7 +108,7 @@ export default function DrugOrderBasketPanelExtension() {
     <Tile
       className={classNames(isTablet ? styles.tabletTile : styles.desktopTile, { [styles.collapsedTile]: !isExpanded })}
     >
-      <div className={styles.container}>
+      <div className={classNames(isTablet ? styles.tabletContainer : styles.desktopContainer)}>
         <div className={styles.iconAndLabel}>
           <RxIcon isTablet={isTablet} />
           <h4 className={styles.heading}>{`${t('drugOrders', 'Drug orders')} (${orders.length})`}</h4>
@@ -106,7 +120,7 @@ export default function DrugOrderBasketPanelExtension() {
             renderIcon={(props: ComponentProps<typeof AddIcon>) => <AddIcon size={16} {...props} />}
             iconDescription="Add medication"
             onClick={openDrugSearch}
-            size={isTablet ? 'md' : 'sm'}
+            size={responsiveSize}
           >
             {t('add', 'Add')}
           </Button>
@@ -120,6 +134,7 @@ export default function DrugOrderBasketPanelExtension() {
             iconDescription="View"
             disabled={orders.length === 0}
             onClick={() => setIsExpanded(!isExpanded)}
+            size={responsiveSize}
           >
             {t('add', 'Add')}
           </Button>
@@ -194,4 +209,6 @@ export default function DrugOrderBasketPanelExtension() {
       )}
     </Tile>
   );
-}
+};
+
+export default DrugOrderBasketPanelExtension;
