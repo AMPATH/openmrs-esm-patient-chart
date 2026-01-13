@@ -5,19 +5,20 @@ import {
   type OpenmrsResource,
   parseDate,
   restBaseUrl,
+  toOmrsIsoString,
   type Visit,
 } from '@openmrs/esm-framework';
 import { type OrderBasketStore, orderBasketStore } from './store';
 import type { ExtractedOrderErrorObject, Order, OrderBasketItem, OrderErrorObject, OrderPost } from './types';
 
-function getOrdersPayloadFromOrderBasket(patientUuid: string, ordererUuid: string) {
+function getOrdersPayloadFromOrderBasket(patientUuid: string, ordererUuid: string, encounterDate?: Date) {
   const { items, postDataPrepFunctions }: OrderBasketStore = orderBasketStore.getState();
   const patientItems = items[patientUuid];
 
   const orders: Array<OrderPost> = [];
   Object.entries(patientItems).forEach(([grouping, groupOrders]) => {
     groupOrders.forEach((order) => {
-      orders.push(postDataPrepFunctions[grouping](order, patientUuid, null, ordererUuid));
+      orders.push(postDataPrepFunctions[grouping](order, patientUuid, null, ordererUuid, encounterDate));
     });
   });
 
@@ -46,13 +47,13 @@ export async function postOrdersOnNewEncounter(
     }
   }
 
-  const orders = getOrdersPayloadFromOrderBasket(patientUuid, ordererUuid);
+  const orders = getOrdersPayloadFromOrderBasket(patientUuid, ordererUuid, encounterDate);
 
   const encounterPostData: EncounterPost = {
     patient: patientUuid,
     location: orderLocationUuid,
     encounterType: orderEncounterType,
-    encounterDatetime: encounterDate,
+    encounterDatetime: toOmrsIsoString(encounterDate),
     visit: currentVisit?.uuid,
     obs: [],
     orders,
@@ -69,7 +70,7 @@ export interface EncounterPost {
   patient: string;
   location: string;
   encounterType: string;
-  encounterDatetime: Date;
+  encounterDatetime: Date | string;
   visit?: string;
   obs: ObsPayload[];
   orders: OrderPost[];

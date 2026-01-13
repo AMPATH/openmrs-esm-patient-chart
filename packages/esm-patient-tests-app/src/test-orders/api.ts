@@ -99,6 +99,7 @@ export const prepTestOrderPostData: PostDataPrepFunction = (
   patientUuid,
   encounterUuid,
   orderingProviderUuid,
+  encounterDate,
 ): TestOrderPost => {
   if (order.action === 'NEW' || order.action === 'RENEW') {
     return {
@@ -108,6 +109,7 @@ export const prepTestOrderPostData: PostDataPrepFunction = (
       careSetting: careSettingUuid,
       orderer: orderingProviderUuid,
       encounter: encounterUuid,
+      dateActivated: encounterDate ? toOmrsIsoString(encounterDate) : undefined,
       concept: order.testType.conceptUuid,
       instructions: order.instructions,
       orderReason: order.orderReason,

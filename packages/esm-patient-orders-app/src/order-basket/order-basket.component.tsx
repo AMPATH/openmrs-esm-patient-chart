@@ -314,7 +314,7 @@ const OrderBasket: React.FC<OrderBasketProps> = ({
                 isLoadingEncounterUuid ||
                 (visitRequired && !visitContext) ||
                 orders?.some(({ isOrderIncomplete }) => isOrderIncomplete) ||
-                !orderer ||
+                !orderer?.uuid ||
                 !orderLocationUuid
               }
             >

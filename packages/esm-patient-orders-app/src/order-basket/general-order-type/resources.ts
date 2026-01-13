@@ -28,6 +28,7 @@ export const prepOrderPostData: PostDataPrepFunction = (
   patientUuid,
   encounterUuid,
   orderingProviderUuid,
+  encounterDate,
 ): OrderPost => {
   if (order.action === 'NEW' || order.action === 'RENEW') {
     return {
@@ -37,6 +38,7 @@ export const prepOrderPostData: PostDataPrepFunction = (
       careSetting: careSettingUuid,
       orderer: orderingProviderUuid,
       encounter: encounterUuid,
+      dateActivated: encounterDate ? toOmrsIsoString(encounterDate) : undefined,
       concept: order.concept.uuid,
       instructions: order.instructions,
       // orderReason: order.orderReason,

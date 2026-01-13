@@ -218,6 +218,7 @@ export type PostDataPrepFunction = (
   patientUuid: string,
   encounterUuid: string | null,
   orderingProviderUuid: string,
+  encounterDate?: Date | string,
 ) => OrderPost;
 
 export interface OrderBasketExtensionProps {
