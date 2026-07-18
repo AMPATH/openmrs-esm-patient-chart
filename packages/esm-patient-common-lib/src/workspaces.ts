@@ -1,5 +1,6 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import {
+  getGlobalStore,
   launchWorkspace2,
   navigate,
   showModal,
@@ -9,6 +10,11 @@ import {
 } from '@openmrs/esm-framework';
 import { usePatientChartStore } from './store/patient-chart-store';
 import { useSystemVisitSetting } from './useSystemVisitSetting';
+
+/** Minimal view of the framework's (internal) workspace2 store state that we mutate. */
+interface Workspace2StoreState {
+  openedWindows: Array<{ windowName: string; maximized: boolean }>;
+}
 
 export interface PatientWorkspaceGroupProps {
   patient: fhir.Patient;
@@ -88,4 +94,26 @@ export function useStartVisitIfNeeded(patientUuid: string) {
     }
   }, [visitContext, systemVisitEnabled, isRdeEnabled, patientUuid]);
   return startVisitIfNeeded;
+}
+
+/**
+ * Maximizes the given workspace window on mount when `shouldMaximize` is true, unless it's already maximized.
+ * Safe to call from multiple workspaces that share the same window.
+ */
+export function useMaximizeWorkspaceWindowOnMount(windowName: string, shouldMaximize: boolean) {
+  useEffect(() => {
+    if (!shouldMaximize) {
+      return;
+    }
+    const store = getGlobalStore<Workspace2StoreState>('workspace2');
+    store.setState((state) => {
+      const openedWindows = state.openedWindows ? [...state.openedWindows] : [];
+      const index = openedWindows.findIndex((w) => w.windowName === windowName);
+      if (index === -1 || openedWindows[index].maximized) {
+        return {};
+      }
+      openedWindows[index] = { ...openedWindows[index], maximized: true };
+      return { openedWindows };
+    });
+  }, [shouldMaximize, windowName]);
 }

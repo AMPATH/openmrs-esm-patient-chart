@@ -116,6 +116,12 @@ export const configSchema = {
     },
     _default: [],
   },
+  openClinicalFormsMaximized: {
+    _type: Type.Boolean,
+    _description:
+      'Whether the clinical forms workspace (the forms list and the form entry view) should open in the maximized (expanded) state by default. Users can still restore it to the normal width using the minimize button.',
+    _default: false,
+  },
 };
 
 export interface FormsSection {
@@ -129,4 +135,5 @@ export interface FormEntryConfigSchema {
   customFormsUrl: string;
   orderBy: 'name' | 'most-recent';
   showHtmlFormEntryForms: boolean;
+  openClinicalFormsMaximized: boolean;
 }

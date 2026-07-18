@@ -1,5 +1,11 @@
 import React from 'react';
-import { type Form, type PatientWorkspace2DefinitionProps } from '@openmrs/esm-patient-common-lib';
+import { useConfig } from '@openmrs/esm-framework';
+import {
+  type Form,
+  type PatientWorkspace2DefinitionProps,
+  useMaximizeWorkspaceWindowOnMount,
+} from '@openmrs/esm-patient-common-lib';
+import { type FormEntryConfigSchema } from '../config-schema';
 import FormEntry from './form-entry.component';
 
 interface FormEntryWorkspaceProps {
@@ -18,7 +24,11 @@ const FormEntryWorkspace: React.FC<PatientWorkspace2DefinitionProps<FormEntryWor
   closeWorkspace,
   workspaceProps: { form, encounterUuid, additionalProps },
   groupProps: { patientUuid, patient, visitContext, mutateVisitContext },
+  windowName,
 }) => {
+  const { openClinicalFormsMaximized } = useConfig<FormEntryConfigSchema>();
+  useMaximizeWorkspaceWindowOnMount(windowName, openClinicalFormsMaximized);
+
   return (
     <FormEntry
       form={form}
