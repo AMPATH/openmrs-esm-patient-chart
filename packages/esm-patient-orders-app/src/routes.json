@@ -94,7 +94,9 @@
       "name": "patient-chart-order-basket",
       "icon": "ShoppingCartIcon",
       "group": "patient-chart",
-      "order": 1
+      "order": 1,
+      "width": "extra-wide",
+      "canMaximize": true
     },
     {
       "name": "lab-results",

@@ -91,6 +91,12 @@ export const configSchema = {
     _description: 'Maximum number of pinned drug orders per user',
     _validators: [validators.inRange(1, 50)],
   },
+  openOrderBasketMaximized: {
+    _type: Type.Boolean,
+    _description:
+      'Whether the order basket workspace should open in the maximized (expanded) state by default. Users can still restore it to the normal width using the minimize button.',
+    _default: false,
+  },
 };
 
 export interface OrderTypeDefinition {
@@ -112,4 +118,5 @@ export interface ConfigObject {
   orderLocationTagName: string;
   enableDrugOrderFavorites: boolean;
   maxPinnedDrugOrders: number;
+  openOrderBasketMaximized: boolean;
 }
